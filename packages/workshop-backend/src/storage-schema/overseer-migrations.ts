@@ -29,7 +29,7 @@ import type { UserDurableObject } from "../user";
  * new workspace is born at (so it has nothing to migrate). The migrations themselves name
  * their versions literally, since each one's source and target are fixed for good.
  */
-export const OVERSEER_STORAGE_VERSION = 5;
+export const OVERSEER_STORAGE_VERSION = 6;
 
 /**
  * The most chat messages that migrateToBlueprintUpstreams() reads, over all of a workspace's
@@ -347,5 +347,14 @@ export function migrateToBlueprintUpstreams(host: OverseerMigrationHost): void {
   });
   host.logger.info("recorded where gadgets came from", {
     event: "storage.migration.blueprint-upstreams.completed",
+  });
+}
+
+/** Version 5 -> 6: identify old threads without scanning or initializing any user's history. */
+export function migrateToUnreadTracking(host: OverseerMigrationHost): void {
+  if (host.storage.version.get() !== 5) return;
+  host.ctx.storage.transactionSync(() => {
+    host.storage.legacyUnreadChatIdLimit.put(host.storage.nextChatId.get());
+    host.storage.version.put(6);
   });
 }
