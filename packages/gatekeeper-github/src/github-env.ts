@@ -8,6 +8,12 @@ export type Env = Cloudflare.Env & {
   CLIENT_ID?: string;
   CLIENT_SECRET?: string;
   /**
+   * Where the OAuth authorize and token endpoints live, such as `https://github.com` (the
+   * default). A deployment points it at an authorization server that issues GitHub tokens on
+   * GitHub's behalf. The REST API and git transport stay on GitHub.
+   */
+  OAUTH_BASE_URL?: string;
+  /**
    * The public origin GitHub delivers webhooks to, such as `https://gadgets.example.com`: the
    * deployment's own, or a tunnel's in local development. GitHub hooks are refused while it is
    * unset.
@@ -18,6 +24,11 @@ export type Env = Cloudflare.Env & {
 /** Where browsers reach this worker, e.g. `https://gadgets.example.com/gatekeeper/github`. */
 export function getBaseUrl(env: Env): string {
   return stripTrailingSlashes(env.BASE_URL ?? "http://localhost:8787/gatekeeper/github");
+}
+
+/** The origin and path GitHub's `/login/oauth/*` endpoints are under, without a trailing slash. */
+export function getOAuthBaseUrl(env: Env): string {
+  return stripTrailingSlashes(env.OAUTH_BASE_URL ?? "https://github.com");
 }
 
 /** The path every request this worker serves starts with: `getBaseUrl()`'s, or `""` at the root. */

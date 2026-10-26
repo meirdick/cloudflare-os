@@ -54,7 +54,7 @@ import {
   type GitHubPullRequestReviewResponse,
   type PinnedRepo,
 } from "./github-api";
-import { getBasePath, getBaseUrl, webhookOrigin, type Env } from "./github-env";
+import { getBasePath, getBaseUrl, getOAuthBaseUrl, webhookOrigin, type Env } from "./github-env";
 import {
   HOOKS_NOT_CONFIGURED, handleWebhookRequest,
   type GitHubEventHookTarget, type GitHubHookDelivery, type GitHubHookParams,
@@ -1289,7 +1289,7 @@ export default {
         });
       }
 
-      const redirectUrl = new URL("https://github.com/login/oauth/authorize");
+      const redirectUrl = new URL(`${getOAuthBaseUrl(env)}/login/oauth/authorize`);
       redirectUrl.searchParams.set("client_id", env.CLIENT_ID);
       redirectUrl.searchParams.set("redirect_uri", `${getBaseUrl(env)}/oauth`);
       redirectUrl.searchParams.set("scope", begun.scopes.join(" "));
@@ -1408,7 +1408,8 @@ export class UserAccount extends DurableObject<Env> {
     refresh: async (grant: GitHubOAuthGrant): Promise<GitHubOAuthGrant> => {
       const { CLIENT_ID, CLIENT_SECRET } = this.env;
       if (!CLIENT_ID || !CLIENT_SECRET) throw new Error("GitHub OAuth is not configured.");
-      return await refreshGitHubGrant(CLIENT_ID, CLIENT_SECRET, CREDENTIALS_EXPIRED_MESSAGE)(grant);
+      return await refreshGitHubGrant(
+        CLIENT_ID, CLIENT_SECRET, CREDENTIALS_EXPIRED_MESSAGE, getOAuthBaseUrl(this.env))(grant);
     },
     notify: () => notifyCredentialsExpiredOnce(this.ctx.storage.kv,
       this.ctx.storage.kv.get<Fetcher<GatekeeperConnectCallback>>("callback"), VENDOR_ID),
@@ -1481,7 +1482,8 @@ export class UserAccount extends DurableObject<Env> {
       throw new Error("Took too long to complete authorization. Please try again.");
     }
 
-    const grant = await exchangeAuthCode(code, clientId, clientSecret, `${getBaseUrl(this.env)}/oauth`);
+    const grant = await exchangeAuthCode(
+      code, clientId, clientSecret, `${getBaseUrl(this.env)}/oauth`, getOAuthBaseUrl(this.env));
 
     let handoff: ConnectHandoff;
     if (stored.reconnect) {

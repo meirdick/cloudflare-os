@@ -82,6 +82,16 @@ AUTH_GATEKEEPERS=cloudflare,google,github
 Users are keyed by their GitHub primary verified email, so the OAuth App must be able to read it
 (the `user:email` scope, requested automatically). No extra setup is needed for an OAuth App.
 
+### (Optional) Use another authorization server
+
+`OAUTH_BASE_URL` (default `https://github.com`) is where the gatekeeper sends users to authorize
+and where it exchanges and refreshes codes: `${OAUTH_BASE_URL}/login/oauth/authorize` and
+`${OAUTH_BASE_URL}/login/oauth/access_token`. Point it at an authorization server that issues
+GitHub tokens on GitHub's behalf, such as one backed by a hosted OAuth provider. `CLIENT_ID` and
+`CLIENT_SECRET` are then that server's client credentials. The REST API and git transport stay on
+GitHub, so the tokens it issues must be real GitHub tokens. Revoking a token calls GitHub with
+`CLIENT_ID`, so with another server it fails and is only logged.
+
 ### Step 5: Verify Setup
 
 1. Start the application in dev mode (see instructions in the root README.md).

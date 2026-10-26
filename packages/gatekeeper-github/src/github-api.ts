@@ -470,11 +470,11 @@ async function request<T>(
   };
 }
 
-function oauthClient(clientId: string, clientSecret: string): OAuthClient {
+function oauthClient(clientId: string, clientSecret: string, oauthBaseUrl: string): OAuthClient {
   return new OAuthClient({
     label: "GitHub",
     client: { method: "post", id: clientId, secret: clientSecret },
-    tokenEndpoint: `${LOGIN_BASE_URL}/login/oauth/access_token`,
+    tokenEndpoint: `${oauthBaseUrl}/login/oauth/access_token`,
     headers: { "User-Agent": USER_AGENT },
     scopeSeparator: ",",
     timeoutMs: REQUEST_TIMEOUT_MS,
@@ -486,8 +486,10 @@ export async function exchangeAuthCode(
   clientId: string,
   clientSecret: string,
   redirectUri: string,
+  oauthBaseUrl: string,
 ): Promise<GitHubOAuthGrant> {
-  const tokens = await oauthClient(clientId, clientSecret).exchangeCode({ code, redirectUri });
+  const tokens = await oauthClient(clientId, clientSecret, oauthBaseUrl)
+    .exchangeCode({ code, redirectUri });
   const grant: GitHubOAuthGrant = {
     accessToken: tokens.accessToken,
     scopes: tokens.scopes?.map(scope => scope.trim()).filter(Boolean) ?? [],
@@ -506,8 +508,9 @@ export function refreshGitHubGrant(
   clientId: string,
   clientSecret: string,
   expiredMessage: string,
+  oauthBaseUrl: string,
 ): RefreshCredentials<GitHubOAuthGrant> {
-  return oauthRefresh<GitHubOAuthGrant>(oauthClient(clientId, clientSecret), {
+  return oauthRefresh<GitHubOAuthGrant>(oauthClient(clientId, clientSecret, oauthBaseUrl), {
     refreshToken: grant => grant.refreshToken,
     merge: (grant, tokens) => ({ ...mergeOAuthTokens(grant, tokens), scopes: grant.scopes }),
     isGrantDeath: error => isInvalidGrant(error)
